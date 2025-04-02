@@ -1,0 +1,917 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saatleri Öğreniyorum Oyunu</title>
+    <style>
+        body {
+            font-family: 'Comic Sans MS', cursive, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            background-color: #f0f8ff;
+            color: #333;
+            text-align: center;
+            padding: 20px;
+            box-sizing: border-box;
+             /* Dokunmatik cihazlarda sürüklerken sayfa kaymasını engelle */
+            touch-action: none;
+        }
+
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 15px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            max-width: 600px;
+            width: 90%;
+        }
+
+        h1 {
+            color: #ff6347;
+            margin-bottom: 20px;
+        }
+
+        .activity-area {
+            margin-top: 20px; /* Biraz azalttık */
+            min-height: 320px; /* Ayarlama etkinliği için daha fazla yer */
+            border: 2px dashed #add8e6;
+            padding: 20px;
+            border-radius: 10px;
+            background-color: #e6f7ff;
+            display: flex; /* İçeriği ortalamak için */
+            flex-direction: column; /* İçeriği alt alta dizmek için */
+            align-items: center; /* Yatayda ortala */
+            justify-content: center; /* Dikeyde ortala (min-height ile çalışır) */
+        }
+
+        .instructions {
+            font-size: 1.1em;
+            color: #555;
+            margin-bottom: 10px; /* Azalttık */
+        }
+
+        .time-of-day-hint {
+            font-size: 1.2em;
+            font-weight: bold;
+            color: #e85a4f;
+            margin-bottom: 10px;
+        }
+
+        .digital-clock {
+            font-size: 2.5em;
+            font-weight: bold;
+            background-color: #333;
+            color: #90ee90;
+            padding: 10px 20px;
+            border-radius: 5px;
+            display: inline-block;
+            margin: 5px 0 15px 0; /* Alt boşluğu artırdık */
+            letter-spacing: 2px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .analog-clock-container {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+
+        /* Genel Canvas Stilleri */
+        canvas.analog-clock {
+            border: 5px solid #8b4513;
+            border-radius: 50%;
+            background-color: #fffaf0;
+            margin: 10px;
+            transition: transform 0.2s ease-in-out;
+             /* Dokunmatik cihazlarda sürükleme için önemli */
+            touch-action: none;
+        }
+        /* Seçenek Saatler */
+         canvas.analog-clock.option {
+             cursor: pointer;
+         }
+         canvas.analog-clock.option:hover {
+            transform: scale(1.05);
+            box-shadow: 0 0 10px rgba(0,0,0, 0.2);
+         }
+         /* Ana Gösterim Saati (Tıklanmaz) */
+         canvas.analog-clock.main-display {
+             cursor: default;
+             margin-top: 5px;
+         }
+         /* Ayarlanabilir Saat */
+         canvas.analog-clock.interactive {
+             cursor: grab; /* Sürükleme imleci */
+             /* Sürüklenirken */
+         }
+          canvas.analog-clock.interactive.dragging {
+             cursor: grabbing;
+         }
+
+
+        .options-container {
+            display: flex;
+            justify-content: center;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 20px;
+        }
+
+        .option-button {
+            padding: 10px 15px;
+            font-size: 1.2em;
+            background-color: #4682b4;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            margin: 5px;
+            transition: background-color 0.3s;
+            min-width: 100px;
+        }
+        .option-button:hover { background-color: #5a9bd3; }
+        .option-button:disabled { background-color: #ccc; cursor: default; }
+
+        .input-group {
+            margin: 15px 0;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            gap: 10px;
+        }
+        .input-row {
+            display: flex; justify-content: center; align-items: center; gap: 10px;
+        }
+        .input-group label { font-size: 1.1em; margin-bottom: -5px; }
+        .input-group input[type="number"], .input-group select {
+            padding: 8px; font-size: 1.1em; border: 2px solid #ccc; border-radius: 5px;
+            width: 70px; text-align: center;
+        }
+        .input-group input[type=number]::-webkit-outer-spin-button,
+        .input-group input[type=number]::-webkit-inner-spin-button { -webkit-appearance: none; margin: 0; }
+        .input-group input[type=number] { -moz-appearance: textfield; }
+
+
+        #feedback { margin-top: 20px; font-size: 1.2em; font-weight: bold; min-height: 25px; }
+        .correct { color: #28a745; }
+        .incorrect { color: #dc3545; }
+
+        #next-button {
+            margin-top: 25px; padding: 12px 25px; font-size: 1.1em; background-color: #ffc107;
+            color: #333; border: none; border-radius: 8px; cursor: pointer;
+            transition: background-color 0.3s; display: none;
+        }
+        #next-button:hover { background-color: #e0a800; }
+
+        #check-button {
+             margin-top: 15px; padding: 10px 20px; font-size: 1.1em; background-color: #17a2b8;
+             color: white; border: none; border-radius: 8px; cursor: pointer;
+             transition: background-color 0.3s;
+         }
+        #check-button:hover { background-color: #138496; }
+        #check-button:disabled { background-color: #ccc; cursor: default; }
+
+        @media (max-width: 600px) {
+            .container { padding: 15px; }
+            h1 { font-size: 1.8em; }
+            .digital-clock { font-size: 2em; }
+            canvas.analog-clock { width: 120px; height: 120px; }
+            canvas.analog-clock.main-display { width: 150px; height: 150px; }
+             /* Ayarlanabilir saat mobilde daha büyük olsun */
+            canvas.analog-clock.interactive { width: 200px; height: 200px; }
+            .input-group input[type="number"], .input-group select { width: 60px; }
+            .option-button { font-size: 1em; min-width: 80px; }
+        }
+
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Saatleri Öğreniyorum Oyunu!</h1>
+        <p id="instructions" class="instructions">Hadi saatleri öğrenelim!</p>
+
+        <div id="activity-area" class="activity-area">
+            <!-- Etkinlik içeriği buraya yüklenecek -->
+        </div>
+
+        <p id="feedback"></p>
+
+        <!-- Kontrol Et butonu artık JS içinde oluşturulup eklenecek -->
+        <button id="next-button">Sonraki Etkinlik!</button>
+    </div>
+
+    <script>
+        // --- Genel Değişkenler ---
+        const activityArea = document.getElementById('activity-area');
+        const instructionsP = document.getElementById('instructions');
+        const feedbackP = document.getElementById('feedback');
+        const nextButton = document.getElementById('next-button');
+
+        let currentCorrectHour12 = 0;
+        let currentCorrectMinute = 0;
+        let currentCorrectIsPM = false;
+        let currentCorrectHour24 = 0;
+        let currentActivityType = -1;
+        let activityFunctions = [];
+
+        // Ayarlanabilir saat için ek değişkenler
+        let interactiveCanvas = null;
+        let interactiveCtx = null;
+        let clockRadius = 0;
+        let clockCenterX = 0;
+        let clockCenterY = 0;
+        let currentHourAngle = 0; // Başlangıç (12:00)
+        let currentMinuteAngle = 0; // Başlangıç (12:00)
+        let draggingHand = null; // 'hour', 'minute', veya null
+        let targetHour12 = 0;
+        let targetMinute = 0;
+
+        // --- Yardımcı Fonksiyonlar ---
+        function getRandomTime() { /* ... (önceki gibi kaldı) ... */
+            const hour12 = Math.floor(Math.random() * 12) + 1;
+            const minuteType = Math.floor(Math.random() * 4);
+            let minute = 0;
+            switch (minuteType) {
+                case 0: minute = 0; break; case 1: minute = 15; break;
+                case 2: minute = 30; break; case 3: minute = 45; break;
+            }
+            const isPM = Math.random() < 0.5;
+            let hour24 = hour12;
+            if (isPM && hour12 !== 12) { hour24 += 12; }
+            else if (!isPM && hour12 === 12) { hour24 = 0; }
+            return { hour12, minute, isPM, hour24 };
+        }
+        function formatDigitalTime(hour12, minute, isPM, formatType = '12hr') { /* ... (önceki gibi kaldı) ... */
+            const m = String(minute).padStart(2, '0');
+            if (formatType === '24hr') {
+                let hour24 = hour12;
+                if (isPM && hour12 !== 12) hour24 += 12;
+                else if (!isPM && hour12 === 12) hour24 = 0;
+                const h24 = String(hour24).padStart(2, '0');
+                return `${h24}:${m}`;
+            } else {
+                const h12 = String(hour12).padStart(2, '0');
+                const period = isPM ? "ÖS" : "ÖÖ";
+                return `${h12}:${m} ${period}`;
+            }
+        }
+        function drawHand(ctx, angle, length, width, color, radius) { /* ... (önceki gibi kaldı) ... */
+             // Açıyı normalize et (0 ile 2PI arasında)
+            angle = (angle + 2 * Math.PI) % (2 * Math.PI);
+            // Merkezi koordinatları al (radius yerine)
+             const centerX = ctx.canvas.width / 2;
+             const centerY = ctx.canvas.height / 2;
+
+             // Saatin 12 pozisyonu yukarıda (negatif Y ekseni) olduğu için PI/2 çıkarıyoruz.
+             const drawAngle = angle - Math.PI / 2;
+
+             ctx.beginPath();
+             ctx.lineWidth = width;
+             ctx.lineCap = "round";
+             ctx.strokeStyle = color;
+             ctx.moveTo(centerX, centerY);
+             ctx.lineTo(centerX + length * Math.cos(drawAngle), centerY + length * Math.sin(drawAngle));
+             ctx.stroke();
+        }
+
+        // Açıları normalize eden fonksiyon (saat çizimi için önemli)
+        function normalizeAngle(angle) {
+            return (angle % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI);
+        }
+
+        // Statik Analog Saat Çizimi (Sayılar ve Çerçeve)
+        function drawStaticAnalogClock(canvasIdOrCtx, sizeOrRadius) {
+             let ctx, canvas, radius, isCtxProvided;
+             if (typeof canvasIdOrCtx === 'string') {
+                 canvas = document.getElementById(canvasIdOrCtx);
+                 if (!canvas) { console.error("Canvas bulunamadı:", canvasIdOrCtx); return null; }
+                 ctx = canvas.getContext('2d');
+                 radius = sizeOrRadius / 2;
+                 canvas.width = sizeOrRadius; canvas.height = sizeOrRadius;
+                 isCtxProvided = false;
+             } else {
+                 ctx = canvasIdOrCtx;
+                 canvas = ctx.canvas;
+                 radius = sizeOrRadius;
+                 isCtxProvided = true;
+             }
+
+             const centerX = canvas.width / 2;
+             const centerY = canvas.height / 2;
+
+             ctx.clearRect(0, 0, canvas.width, canvas.height); // Temizle
+
+             // Saat çerçevesi ve yüzü
+             ctx.beginPath();
+             ctx.arc(centerX, centerY, radius * 0.95, 0, 2 * Math.PI);
+             ctx.fillStyle = '#fffaf0'; ctx.fill();
+             ctx.strokeStyle = '#8b4513'; ctx.lineWidth = radius * 0.05; ctx.stroke();
+
+             // Merkez nokta
+             ctx.beginPath();
+             ctx.arc(centerX, centerY, radius * 0.05, 0, 2 * Math.PI);
+             ctx.fillStyle = '#333'; ctx.fill();
+
+             // Saat sayıları
+             const numberRadius = radius * 0.82;
+             ctx.textBaseline = "middle"; ctx.textAlign = "center"; ctx.fillStyle = '#333';
+             for (let num = 1; num <= 12; num++) {
+                 const angle = num * Math.PI / 6; // Açı (matematiksel)
+                 const x = centerX + numberRadius * Math.sin(angle);
+                 const y = centerY - numberRadius * Math.cos(angle); // Y ekseni ters
+                 ctx.font = (num % 3 === 0) ? `${radius * 0.18}px Arial bold` : `${radius * 0.15}px Arial`;
+                 ctx.fillText(num.toString(), x, y);
+             }
+             return ctx; // Eğer canvas ID ile çağrıldıysa ctx'i döndür
+         }
+
+        // Sadece Kolları Çizen Fonksiyon (mevcut açılarına göre)
+        function drawInteractiveHands(ctx, hourAngle, minuteAngle, radius) {
+            // Akrep
+            drawHand(ctx, hourAngle, radius * 0.5, radius * 0.07, '#333', radius);
+            // Yelkovan
+            drawHand(ctx, minuteAngle, radius * 0.8, radius * 0.04, '#555', radius);
+        }
+
+        // Belirli bir saat/dakikaya göre açıları hesapla
+        function getAnglesFromTime(hour12, minute) {
+             hour12 = hour12 % 12; // 12'lik sisteme indirge
+             // Saat açısı (dakikadan etkilenir) - 12 yukarıda = 0 açı
+             let hourAngle = ((hour12 + minute / 60) / 12) * 2 * Math.PI;
+             // Dakika açısı - 0 dakika yukarıda = 0 açı
+             let minuteAngle = (minute / 60) * 2 * Math.PI;
+             return { hourAngle: normalizeAngle(hourAngle), minuteAngle: normalizeAngle(minuteAngle) };
+        }
+
+        // Açılardan saati hesapla (yaklaşık)
+        function getTimeFromAngles(hourAngle, minuteAngle) {
+             hourAngle = normalizeAngle(hourAngle);
+             minuteAngle = normalizeAngle(minuteAngle);
+
+             // Dakikayı hesapla ve en yakın dakikaya yuvarla
+             let minute = Math.round((minuteAngle / (2 * Math.PI)) * 60) % 60;
+
+             // Saati hesapla (akrebin tam olarak nerede olduğuna bakarak)
+             // Akrebin 12 saatlik döngüsü: hourAngle / (2 * PI) * 12
+             // Ör: 0.25 -> 3, 0.5 -> 6
+             let hourFloat = (hourAngle / (2 * Math.PI)) * 12;
+             // En yakın saate yuvarla (12'yi 0 değil 12 yap)
+             let hour12 = Math.round(hourFloat);
+             if (hour12 === 0) hour12 = 12; // 0 yerine 12 göster
+
+             // Daha hassas saat: Akrebin dakikadan etkilenmesini hesaba kat
+             // Ancak kontrol için en yakın saate yuvarlamak daha kolay olabilir
+             // VEYA: Yelkovanın pozisyonuna göre saati tahmin et. Yelkovan 6'dan sonraysa bir sonraki saate yakınsar.
+             // Şimdilik basit yuvarlama kullanalım.
+
+             return { hour12, minute };
+        }
+
+
+        function shuffleArray(array) { /* ... (önceki gibi kaldı) ... */
+            for (let i = array.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [array[i], array[j]] = [array[j], array[i]];
+            }
+        }
+        function showFeedback(message, isCorrect) { /* ... (önceki gibi kaldı) ... */
+            feedbackP.textContent = message;
+            feedbackP.className = isCorrect ? 'correct' : 'incorrect';
+            nextButton.style.display = isCorrect ? 'block' : 'none';
+            // Eğer yanlışsa ve interaktif saat varsa tekrar deneme imkanı ver
+            if (!isCorrect && interactiveCanvas) {
+                const checkButton = document.getElementById('check-button');
+                if(checkButton) checkButton.disabled = false;
+                 interactiveCanvas.classList.remove('dragging'); // Sürükleme imlecini düzelt
+                 draggingHand = null; // Sürüklemeyi bırak
+            }
+        }
+        function clearActivity() { /* ... (önceki gibi kaldı) ... */
+             // Önceki interaktif saatten kalan event listenerları temizle (önemli!)
+             if (interactiveCanvas) {
+                interactiveCanvas.removeEventListener('mousedown', handleMouseDown);
+                interactiveCanvas.removeEventListener('mousemove', handleMouseMove);
+                document.removeEventListener('mouseup', handleMouseUp); // document'a eklenmişti
+                interactiveCanvas.removeEventListener('touchstart', handleTouchStart);
+                interactiveCanvas.removeEventListener('touchmove', handleTouchMove);
+                document.removeEventListener('touchend', handleTouchEnd); // document'a eklenmişti
+             }
+             interactiveCanvas = null; // Referansı temizle
+             interactiveCtx = null;
+             draggingHand = null;
+
+             activityArea.innerHTML = '';
+             feedbackP.textContent = ''; feedbackP.className = '';
+             nextButton.style.display = 'none';
+
+             // Varsa kontrol butonunu kaldır
+             const oldCheckButton = document.getElementById('check-button');
+             if (oldCheckButton && oldCheckButton.parentElement === activityArea.parentElement) {
+                 oldCheckButton.parentElement.removeChild(oldCheckButton);
+             }
+        }
+
+        // --- Etkinlik Fonksiyonları ---
+
+        function setupMatchDigitalToAnalog() { /* ... (önceki gibi kaldı, sadece drawStaticAnalogClock kullanacak) ... */
+            clearActivity();
+            const time = getRandomTime();
+            currentCorrectHour12 = time.hour12; currentCorrectMinute = time.minute; currentCorrectIsPM = time.isPM;
+            const use24hrFormat = Math.random() < 0.5;
+            instructionsP.textContent = `Aşağıdaki dijital saatin aynısını gösteren analog saate tıkla!`;
+
+            const digitalDiv = document.createElement('div');
+            digitalDiv.className = 'digital-clock';
+            digitalDiv.textContent = formatDigitalTime(time.hour12, time.minute, time.isPM, use24hrFormat ? '24hr' : '12hr');
+            activityArea.appendChild(digitalDiv);
+
+            const optionsContainer = document.createElement('div');
+            optionsContainer.className = 'analog-clock-container';
+            activityArea.appendChild(optionsContainer);
+
+            const options = [{ hour: currentCorrectHour12, minute: currentCorrectMinute }];
+            while (options.length < 3) { /*...*/
+                const wrongTime = getRandomTime();
+                if (options.every(opt => opt.hour !== wrongTime.hour12 || opt.minute !== wrongTime.minute)) {
+                    options.push({ hour: wrongTime.hour12, minute: wrongTime.minute });
+                }
+            }
+            shuffleArray(options);
+
+            options.forEach((opt, index) => {
+                const canvasId = `analogClockOption${index}`;
+                const canvas = document.createElement('canvas');
+                canvas.id = canvasId;
+                canvas.className = 'analog-clock option';
+                canvas.dataset.hour = opt.hour; canvas.dataset.minute = opt.minute;
+                optionsContainer.appendChild(canvas);
+                // Statik saati çiz
+                 const ctx = drawStaticAnalogClock(canvasId, 120); // ctx'i al
+                 if (ctx) {
+                     const angles = getAnglesFromTime(opt.hour, opt.minute);
+                     drawInteractiveHands(ctx, angles.hourAngle, angles.minuteAngle, 60); // radius = size/2
+                 }
+
+                canvas.onclick = () => { /*...*/
+                     const selectedHour = parseInt(canvas.dataset.hour);
+                     const selectedMinute = parseInt(canvas.dataset.minute);
+                     if (selectedHour === currentCorrectHour12 && selectedMinute === currentCorrectMinute) {
+                         showFeedback("Harika! Doğru saati buldun!", true);
+                         optionsContainer.querySelectorAll('canvas').forEach(c => c.onclick = null);
+                     } else {
+                         showFeedback("Hmm, bu doğru saat değil. Tekrar dene!", false);
+                         canvas.style.borderColor = '#dc3545';
+                         setTimeout(() => { canvas.style.borderColor = '#8b4513'; }, 1000);
+                     }
+                 };
+            });
+        }
+        function setupMatchAnalogToDigital() { /* ... (önceki gibi kaldı, sadece drawStaticAnalogClock kullanacak) ... */
+             clearActivity();
+             const time = getRandomTime();
+             currentCorrectHour12 = time.hour12; currentCorrectMinute = time.minute;
+             currentCorrectIsPM = time.isPM; currentCorrectHour24 = time.hour24;
+
+             const timeOfDayHint = document.createElement('p');
+             timeOfDayHint.className = 'time-of-day-hint';
+             timeOfDayHint.textContent = `Zaman Dilimi: ${currentCorrectIsPM ? 'Öğleden Sonra / Akşam' : 'Sabah / Öğleden Önce'}`;
+             activityArea.appendChild(timeOfDayHint);
+             instructionsP.textContent = `Bu analog saatin gösterdiği zamanı (${currentCorrectIsPM ? 'öğleden sonra/akşam' : 'sabah'}) aşağıdaki seçeneklerden bul!`;
+
+             // Ana analog saati çiz
+             const canvasId = 'mainAnalogClock';
+             const canvas = document.createElement('canvas');
+             canvas.id = canvasId;
+             canvas.className = 'analog-clock main-display';
+             activityArea.appendChild(canvas);
+             const ctx = drawStaticAnalogClock(canvasId, 180); // Statik kısmı çiz
+             if (ctx) {
+                 const angles = getAnglesFromTime(currentCorrectHour12, currentCorrectMinute);
+                 drawInteractiveHands(ctx, angles.hourAngle, angles.minuteAngle, 90); // Kolları çiz
+             }
+
+
+             // Dijital saat seçenekleri
+             const optionsContainer = document.createElement('div');
+             optionsContainer.className = 'options-container';
+             activityArea.appendChild(optionsContainer);
+             const use24hrOptions = Math.random() < 0.5;
+             const correctOptionString = formatDigitalTime(currentCorrectHour12, currentCorrectMinute, currentCorrectIsPM, use24hrOptions ? '24hr' : '12hr');
+             const options = [correctOptionString];
+
+             while (options.length < 4) { /* ... (yanlış seçenek üretme mantığı aynı) ... */
+                 const wrongTime = getRandomTime();
+                 if (wrongTime.hour12 === currentCorrectHour12 && wrongTime.minute === currentCorrectMinute && wrongTime.isPM !== currentCorrectIsPM) { continue; }
+                 const wrongFormattedTime = formatDigitalTime(wrongTime.hour12, wrongTime.minute, wrongTime.isPM, use24hrOptions ? '24hr' : '12hr');
+                 if (!options.includes(wrongFormattedTime)) { options.push(wrongFormattedTime); }
+             }
+             shuffleArray(options);
+
+             options.forEach(optTime => { /* ... (buton oluşturma ve kontrol mantığı aynı) ... */
+                 const button = document.createElement('button');
+                 button.className = 'option-button'; button.textContent = optTime;
+                 optionsContainer.appendChild(button);
+                 button.onclick = () => {
+                     if (optTime === correctOptionString) {
+                         showFeedback("Süpersin! Doğru zamanı seçtin!", true);
+                         optionsContainer.querySelectorAll('button').forEach(b => b.disabled = true);
+                     } else {
+                         showFeedback("Bu doğru değil gibi. İpucuna ve saate dikkat ettin mi?", false);
+                         button.style.backgroundColor = '#dc3545';
+                         setTimeout(() => { if (!button.disabled) button.style.backgroundColor = '#4682b4'; }, 1000);
+                     }
+                 };
+             });
+        }
+        function setupFillDigitalFromAnalog() { /* ... (önceki gibi kaldı, sadece drawStaticAnalogClock kullanacak) ... */
+            clearActivity();
+            const time = getRandomTime();
+            currentCorrectHour12 = time.hour12; currentCorrectMinute = time.minute;
+            currentCorrectIsPM = time.isPM; currentCorrectHour24 = time.hour24;
+
+            const timeOfDayHint = document.createElement('p');
+            timeOfDayHint.className = 'time-of-day-hint';
+            timeOfDayHint.textContent = `Zaman Dilimi: ${currentCorrectIsPM ? 'Öğleden Sonra / Akşam' : 'Sabah / Öğleden Önce'}`;
+            activityArea.appendChild(timeOfDayHint);
+            instructionsP.textContent = `Bu analog saat ${currentCorrectIsPM ? 'öğleden sonra/akşam' : 'sabah'} kaçı gösteriyor? Kutulara 24 saatlik biçimde yaz.`;
+
+            // Ana analog saati çiz
+            const canvasId = 'mainAnalogClock';
+            const canvas = document.createElement('canvas');
+            canvas.id = canvasId;
+            canvas.className = 'analog-clock main-display';
+            activityArea.appendChild(canvas);
+            const ctx = drawStaticAnalogClock(canvasId, 180); // Statik kısmı çiz
+             if (ctx) {
+                 const angles = getAnglesFromTime(currentCorrectHour12, currentCorrectMinute);
+                 drawInteractiveHands(ctx, angles.hourAngle, angles.minuteAngle, 90); // Kolları çiz
+             }
+
+
+            // Girdi alanları
+            const inputGroup = document.createElement('div'); inputGroup.className = 'input-group';
+            const hourLabel = document.createElement('label'); hourLabel.textContent = "Saat (00-23)";
+            const hourInput = document.createElement('input'); hourInput.type = "number"; hourInput.id = "hourInput";
+            hourInput.min = "0"; hourInput.max = "23"; hourInput.placeholder = "SS";
+            const minuteLabel = document.createElement('label'); minuteLabel.textContent = "Dakika (00-59)";
+            const minuteInput = document.createElement('input'); minuteInput.type = "number"; minuteInput.id = "minuteInput";
+            minuteInput.min = "0"; minuteInput.max = "59"; minuteInput.placeholder = "DD";
+            const checkButton = document.createElement('button'); checkButton.id = 'check-button'; checkButton.textContent = "Kontrol Et";
+
+            inputGroup.appendChild(hourLabel); inputGroup.appendChild(hourInput);
+            inputGroup.appendChild(minuteLabel); inputGroup.appendChild(minuteInput);
+            activityArea.appendChild(inputGroup);
+             // Kontrol butonunu container'a ekle
+            activityArea.parentElement.insertBefore(checkButton, feedbackP); // Feedback'den önce
+
+
+            checkButton.onclick = () => { /* ... (kontrol mantığı aynı) ... */
+                const enteredHour = parseInt(hourInput.value); const enteredMinute = parseInt(minuteInput.value);
+                if (isNaN(enteredHour) || isNaN(enteredMinute)) { showFeedback("Lütfen hem saati hem de dakikayı tam olarak yaz.", false); return; }
+                if (enteredHour === currentCorrectHour24 && enteredMinute === currentCorrectMinute) {
+                     showFeedback("Evet! Tam olarak doğru saati yazdın!", true);
+                     hourInput.disabled = true; minuteInput.disabled = true; checkButton.disabled = true;
+                } else {
+                     let errorMsg = "Tam olmadı. 24 saatlik gösterime ve ipucuna dikkat et.";
+                     if (enteredHour === currentCorrectHour12 && enteredMinute === currentCorrectMinute && currentCorrectHour12 !== currentCorrectHour24) {
+                         errorMsg = `Saati doğru yazdın ama ${currentCorrectIsPM ? 'akşam/öğleden sonra' : 'sabah'} olduğunu unuttun mu? 24 saatlik yazmalısın (Örn: ${currentCorrectHour24}:${String(currentCorrectMinute).padStart(2,'0')}).`;
+                     }
+                     showFeedback(errorMsg, false);
+                }
+            };
+        }
+        function setupSelectHandsFromDigital() { /* ... (önceki gibi kaldı) ... */
+             clearActivity();
+             const time = getRandomTime();
+             currentCorrectHour12 = time.hour12; currentCorrectMinute = time.minute; currentCorrectIsPM = time.isPM;
+             const use24hrFormat = Math.random() < 0.5;
+             instructionsP.textContent = "Dijital saati analog saate çevirelim! Akrep ve Yelkovan hangi numaraları göstermeli?";
+
+             const digitalDiv = document.createElement('div');
+             digitalDiv.className = 'digital-clock';
+             digitalDiv.textContent = formatDigitalTime(time.hour12, time.minute, time.isPM, use24hrFormat ? '24hr' : '12hr');
+             activityArea.appendChild(digitalDiv);
+
+             const inputGroup = document.createElement('div'); inputGroup.className = 'input-group'; inputGroup.style.marginTop = '25px';
+             const hourSelectGroup = document.createElement('div');
+             const hourLabel = document.createElement('label'); hourLabel.textContent = "Akrep (Saat Kolu) Numarası:";
+             const hourSelect = document.createElement('select'); hourSelect.id = "hourSelect";
+             hourSelect.innerHTML = `<option value="">Seç</option>` + Array.from({length: 12}, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
+             hourSelectGroup.appendChild(hourLabel); hourSelectGroup.appendChild(hourSelect);
+
+             const minuteSelectGroup = document.createElement('div');
+             const minuteLabel = document.createElement('label'); minuteLabel.textContent = "Yelkovan (Dakika Kolu) Numarası:";
+             const minuteSelect = document.createElement('select'); minuteSelect.id = "minuteSelect";
+             minuteSelect.innerHTML = `<option value="">Seç</option><option value="12">12 (:00)</option><option value="3">3 (:15)</option><option value="6">6 (:30)</option><option value="9">9 (:45)</option>`;
+             minuteSelectGroup.appendChild(minuteLabel); minuteSelectGroup.appendChild(minuteSelect);
+
+             const checkButton = document.createElement('button'); checkButton.id = 'check-button'; checkButton.textContent = "Kontrol Et";
+
+             inputGroup.appendChild(hourSelectGroup); inputGroup.appendChild(minuteSelectGroup);
+             activityArea.appendChild(inputGroup);
+             // Kontrol butonunu container'a ekle
+             activityArea.parentElement.insertBefore(checkButton, feedbackP); // Feedback'den önce
+
+             const correctHourTarget = currentCorrectHour12;
+             let correctMinuteTarget;
+             if (currentCorrectMinute === 0) correctMinuteTarget = 12;
+             else if (currentCorrectMinute === 15) correctMinuteTarget = 3;
+             else if (currentCorrectMinute === 30) correctMinuteTarget = 6;
+             else if (currentCorrectMinute === 45) correctMinuteTarget = 9;
+
+             checkButton.onclick = () => { /* ... (kontrol mantığı aynı) ... */
+                 const selectedHour = parseInt(hourSelect.value); const selectedMinuteTarget = parseInt(minuteSelect.value);
+                 if (isNaN(selectedHour) || isNaN(selectedMinuteTarget)) { showFeedback("Lütfen hem akrep hem de yelkovan için seçim yap.", false); return; }
+                 let hourCorrect = selectedHour === correctHourTarget; const minuteCorrect = selectedMinuteTarget === correctMinuteTarget;
+                 if (hourCorrect && minuteCorrect) {
+                     showFeedback("Harikasın! Akrep ve yelkovanın yerini doğru tahmin ettin!", true);
+                     hourSelect.disabled = true; minuteSelect.disabled = true; checkButton.disabled = true;
+                 } else {
+                      let errorMsg = "Tekrar düşünelim.";
+                      if (!hourCorrect && minuteCorrect) errorMsg = "Akrep tam doğru yerde değil gibi.";
+                      else if (hourCorrect && !minuteCorrect) errorMsg = "Yelkovan tam doğru yerde değil gibi.";
+                      showFeedback(errorMsg, false);
+                 }
+             };
+        }
+
+        // ****** YENİ ETKİNLİK: Saati Ayarla ******
+        function setupSetAnalogFromDigital() {
+            clearActivity();
+            const time = getRandomTime();
+            targetHour12 = time.hour12; // Hedeflenen saat
+            targetMinute = time.minute;
+            currentCorrectIsPM = time.isPM; // İpucu için sakla
+
+            const use24hrFormat = Math.random() < 0.5;
+            instructionsP.textContent = "Aşağıdaki dijital saati göstermesi için kolları sürükleyerek ayarla!";
+
+            // Dijital saati göster
+            const digitalDiv = document.createElement('div');
+            digitalDiv.className = 'digital-clock';
+            digitalDiv.textContent = formatDigitalTime(targetHour12, targetMinute, currentCorrectIsPM, use24hrFormat ? '24hr' : '12hr');
+            activityArea.appendChild(digitalDiv);
+
+            // Zaman dilimi ipucu (Gerekirse) - Dijitalde ÖÖ/ÖS yoksa faydalı
+            if (use24hrFormat) {
+                 const timeOfDayHint = document.createElement('p');
+                 timeOfDayHint.className = 'time-of-day-hint';
+                 timeOfDayHint.textContent = `(Bu saat ${currentCorrectIsPM ? 'öğleden sonra/akşam' : 'sabah'})`;
+                 activityArea.appendChild(timeOfDayHint);
+            }
+
+            // İnteraktif Canvas oluştur
+            interactiveCanvas = document.createElement('canvas');
+            interactiveCanvas.id = 'interactiveClockCanvas';
+            interactiveCanvas.className = 'analog-clock interactive';
+            const canvasSize = Math.min(activityArea.clientWidth * 0.8, 250); // Boyut ayarı
+             interactiveCanvas.width = canvasSize;
+             interactiveCanvas.height = canvasSize;
+            activityArea.appendChild(interactiveCanvas);
+
+            interactiveCtx = interactiveCanvas.getContext('2d');
+            clockRadius = interactiveCanvas.width / 2;
+            clockCenterX = clockRadius;
+            clockCenterY = clockRadius;
+
+            // Başlangıç pozisyonu (örn: 12:00)
+            const initialAngles = getAnglesFromTime(12, 0);
+            currentHourAngle = initialAngles.hourAngle;
+            currentMinuteAngle = initialAngles.minuteAngle;
+
+            // İlk çizim
+            redrawInteractiveClock();
+
+            // Kontrol Et butonu
+            const checkButton = document.createElement('button');
+            checkButton.id = 'check-button';
+            checkButton.textContent = "Kontrol Et";
+            // Butonu container'a ekle, feedback'den önce
+            activityArea.parentElement.insertBefore(checkButton, feedbackP);
+
+
+            checkButton.onclick = () => {
+                // Mevcut açılardan saati hesapla
+                const currentTime = getTimeFromAngles(currentHourAngle, currentMinuteAngle);
+
+                // Hedef saat ile karşılaştır
+                if (currentTime.hour12 === targetHour12 && currentTime.minute === targetMinute) {
+                    showFeedback("Muhteşem! Saati doğru ayarladın!", true);
+                    checkButton.disabled = true;
+                    // Event listener'ları kaldırarak daha fazla sürüklemeyi engelle
+                    removeDragListeners();
+                    interactiveCanvas.classList.remove('interactive', 'dragging');
+                    interactiveCanvas.classList.add('main-display'); // Normal görünüm
+                } else {
+                    showFeedback(`Tam olarak değil. Ayarladığın saat yaklaşık ${String(currentTime.hour12).padStart(2,'0')}:${String(currentTime.minute).padStart(2,'0')}. Tekrar dene!`, false);
+                    checkButton.disabled = true; // Yanlış cevap sonrası hemen tekrar tıklamayı önle
+                    setTimeout(() => { checkButton.disabled = false; }, 1500); // 1.5 sn sonra tekrar aktif et
+                }
+            };
+
+            // Sürükleme olay dinleyicilerini ekle
+            addDragListeners();
+        }
+
+        function redrawInteractiveClock() {
+            if (!interactiveCtx) return;
+            // Önce statik kısımları çiz (arka plan, sayılar)
+             drawStaticAnalogClock(interactiveCtx, clockRadius);
+             // Sonra kolları mevcut açılarla çiz
+             drawInteractiveHands(interactiveCtx, currentHourAngle, currentMinuteAngle, clockRadius);
+        }
+
+        // --- Sürükleme Mantığı ---
+        function getMousePos(canvas, evt) {
+            const rect = canvas.getBoundingClientRect();
+            return {
+                x: evt.clientX - rect.left,
+                y: evt.clientY - rect.top
+            };
+        }
+
+        function getTouchPos(canvas, evt) {
+             const rect = canvas.getBoundingClientRect();
+             return {
+                 x: evt.touches[0].clientX - rect.left,
+                 y: evt.touches[0].clientY - rect.top
+             };
+        }
+
+         function getAngleFromPos(x, y, centerX, centerY) {
+             // atan2(y, x) kullanıyoruz. Merkezden (x,y)'ye olan vektörün açısını verir.
+             // Y eksenimiz aşağı doğru pozitif olduğundan, y farkını tersine çeviririz (centerY - y)
+             // Saatin 12'si yukarıda (negatif Y), bu yüzden sonucu ayarlamamız gerekebilir.
+             let angle = Math.atan2(y - centerY, x - centerX);
+             // Açıyı 0-2PI arasına getir ve 12 pozisyonunu 0 derece yapacak şekilde döndür (PI/2 ekle)
+             return normalizeAngle(angle + Math.PI / 2);
+         }
+
+
+        function handleMouseDown(e) {
+            if (e.button !== 0) return; // Sadece sol tık
+            handleInteractionStart(getMousePos(interactiveCanvas, e));
+            document.addEventListener('mousemove', handleMouseMove); // document üzerinde dinle
+            document.addEventListener('mouseup', handleMouseUp);     // document üzerinde dinle
+        }
+
+        function handleTouchStart(e) {
+            e.preventDefault(); // Sayfa kaydırmayı engelle
+            if (e.touches.length === 1) {
+                handleInteractionStart(getTouchPos(interactiveCanvas, e));
+                document.addEventListener('touchmove', handleTouchMove, { passive: false }); // document üzerinde dinle
+                document.addEventListener('touchend', handleTouchEnd);     // document üzerinde dinle
+            }
+        }
+
+         function handleInteractionStart(pos) {
+             if (!interactiveCanvas) return;
+             const angle = getAngleFromPos(pos.x, pos.y, clockCenterX, clockCenterY);
+
+             // Kollara olan açısal mesafeyi hesapla
+             const diffHour = Math.min(Math.abs(angle - currentHourAngle), 2 * Math.PI - Math.abs(angle - currentHourAngle));
+             const diffMinute = Math.min(Math.abs(angle - currentMinuteAngle), 2 * Math.PI - Math.abs(angle - currentMinuteAngle));
+
+             // Hangi kola daha yakın olduğuna karar ver (biraz tolerans ekleyebiliriz)
+             const tolerance = 0.3; // radyan cinsinden tolerans (yaklaşık 17 derece)
+
+             // Öncelik yelkovanda (daha uzun olduğu için üstte gibi)
+             if (diffMinute < tolerance) {
+                 draggingHand = 'minute';
+             } else if (diffHour < tolerance) {
+                 draggingHand = 'hour';
+             } else {
+                 draggingHand = null;
+             }
+
+             if (draggingHand) {
+                interactiveCanvas.classList.add('dragging');
+                 // İlk tıklamada hemen açıyı ayarla
+                 updateHands(pos.x, pos.y);
+             }
+         }
+
+
+        function handleMouseMove(e) {
+            if (!draggingHand) return;
+            const pos = getMousePos(interactiveCanvas, e);
+            updateHands(pos.x, pos.y);
+        }
+
+        function handleTouchMove(e) {
+            e.preventDefault(); // Sayfa kaydırmayı engelle
+            if (!draggingHand || e.touches.length !== 1) return;
+            const pos = getTouchPos(interactiveCanvas, e);
+            updateHands(pos.x, pos.y);
+        }
+
+         function updateHands(x, y) {
+             if (!draggingHand || !interactiveCtx) return;
+
+             let angle = getAngleFromPos(x, y, clockCenterX, clockCenterY);
+
+             if (draggingHand === 'minute') {
+                 // Dakika kolunu en yakın dakikaya yapıştır (6 derece = 2PI / 60)
+                 const minuteSnapAngle = (2 * Math.PI) / 60;
+                 currentMinuteAngle = Math.round(angle / minuteSnapAngle) * minuteSnapAngle;
+
+                 // İSTEĞE BAĞLI: Akrebi dakikaya göre hafifçe ayarla (daha gerçekçi)
+                 // Bu, kontrolü biraz zorlaştırabilir, şimdilik kapalı.
+                 // const currentHour = getTimeFromAngles(currentHourAngle, currentMinuteAngle).hour12;
+                 // const currentMinute = getTimeFromAngles(currentHourAngle, currentMinuteAngle).minute;
+                 // const targetAngles = getAnglesFromTime(currentHour, currentMinute);
+                 // currentHourAngle = targetAngles.hourAngle;
+
+             } else if (draggingHand === 'hour') {
+                 // Saat kolunu en yakın saate yapıştır (30 derece = 2PI / 12)
+                 const hourSnapAngle = (2 * Math.PI) / 12;
+                 currentHourAngle = Math.round(angle / hourSnapAngle) * hourSnapAngle;
+             }
+
+             redrawInteractiveClock(); // Her hareketle yeniden çiz
+         }
+
+
+        function handleMouseUp(e) {
+             if (e.button !== 0) return;
+             handleInteractionEnd();
+             document.removeEventListener('mousemove', handleMouseMove);
+             document.removeEventListener('mouseup', handleMouseUp);
+        }
+
+        function handleTouchEnd(e) {
+             handleInteractionEnd();
+             document.removeEventListener('touchmove', handleTouchMove);
+             document.removeEventListener('touchend', handleTouchEnd);
+        }
+
+         function handleInteractionEnd() {
+             if (!interactiveCanvas) return;
+             if (draggingHand) {
+                 // Son bir yapıştırma yapalım (bazen hızlı bırakmada atlayabilir)
+                 // redrawInteractiveClock(); // Zaten updateHands içinde çiziliyor
+             }
+             draggingHand = null;
+             interactiveCanvas.classList.remove('dragging');
+         }
+
+         function addDragListeners() {
+             if (!interactiveCanvas) return;
+             interactiveCanvas.addEventListener('mousedown', handleMouseDown);
+             interactiveCanvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+             // move ve end olayları document'a ekleniyor ki canvas dışına çıksa da çalışsın
+         }
+
+         function removeDragListeners() {
+             if (!interactiveCanvas) return;
+             interactiveCanvas.removeEventListener('mousedown', handleMouseDown);
+             interactiveCanvas.removeEventListener('touchstart', handleTouchStart);
+             // document'dan kaldırma (eğer başka interaktif element yoksa sorun olmaz)
+             document.removeEventListener('mousemove', handleMouseMove);
+             document.removeEventListener('mouseup', handleMouseUp);
+             document.removeEventListener('touchmove', handleTouchMove);
+             document.removeEventListener('touchend', handleTouchEnd);
+         }
+
+
+        // --- Oyun Akışı ---
+        function nextActivity() {
+            currentActivityType = (currentActivityType + 1) % activityFunctions.length;
+            // Geçiş efekti için küçük bekleme
+            activityArea.style.opacity = 0;
+            setTimeout(() => {
+                 activityFunctions[currentActivityType]();
+                 activityArea.style.opacity = 1;
+            }, 200); // 200ms geçiş süresi
+            activityArea.style.transition = 'opacity 0.2s ease-in-out';
+
+        }
+
+        function startGame() {
+             activityFunctions = [
+                 setupMatchDigitalToAnalog,
+                 setupMatchAnalogToDigital,
+                 setupFillDigitalFromAnalog,
+                 setupSelectHandsFromDigital,
+                 setupSetAnalogFromDigital // Yeni etkinliği ekle
+             ];
+             shuffleArray(activityFunctions); // Etkinlikleri karıştır!
+             currentActivityType = -1;
+             nextActivity();
+        }
+
+        // --- Olay Dinleyiciler ---
+        nextButton.addEventListener('click', nextActivity);
+
+        // --- Oyunu Başlat ---
+        window.onload = startGame;
+
+    </script>
+</body>
+</html>
